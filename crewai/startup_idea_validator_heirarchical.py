@@ -32,7 +32,7 @@ worker_llm = LLM(
 market_analyst_agent = Agent(
     role="Market Analyst",
     goal="Analyse Market demand and competitors.",
-    backstory="You are a sharp businss analyist. You demand data before believing any hype.",
+    backstory="You are a sharp business analyist. You demand data before believing any hype.",
     verbose=True,
     llm=worker_llm,
     allow_delegation=False
@@ -41,13 +41,13 @@ market_analyst_agent = Agent(
 tech_analyst_agent = Agent(
     role="CTO",
     goal="Assess techical feasibility.",
-    backstory="You are an expect technologist and CTO. you judge if the idea is technologically feasible.",
+    backstory="You are an expert technologist and CTO. you judge if the idea is technologically feasible.",
     verbose=True,
     llm=worker_llm,
     allow_delegation=False
 )
 
-# Define the high-level foal. 
+# Define the high-level goal. 
 # We give the goal to the manager, not the workers.
 
 task_validate = Task(
@@ -55,13 +55,13 @@ task_validate = Task(
     Validate the startup idea: 'A market for 20000 GBP human-sized and human-looking robot that can be trained to perform household chores, and manual tasks inside a household or indoor industry or businesses'    
     1. Ask the "Market Analyst" to investigate if there is market for this idea.
     2. Ask the "CTO" to check if the idea is technologically feasible.
-    3. Synnthesize thier answers into a final Go/No-Go decision.
+    3. Synthesize their answers into a final Go/No-Go decision.
     """,
     expected_output = "A final executive summary with Go/No-Go decision.",
     # No agent assigned here. The Manager will handle it.
 )
 
-# The Heirarchical crew
+# The Hierarchical crew
 
 crew = Crew(
     agents=[market_analyst_agent, tech_analyst_agent], # The workers
@@ -74,7 +74,7 @@ crew = Crew(
 print("### Starting the Crew ###")
 print("-------------------------")
 
-resut = crew.kickoff()
+result = crew.kickoff()
 print("\n#################\n")
-print(resut)
+print(result)
 print("#################\n")
