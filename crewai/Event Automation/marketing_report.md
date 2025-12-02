@@ -3,9 +3,9 @@
 ## Event Details
 
 * **Event Name:** House Warming Ceremony
-* **Date:** 18-January-2026
+* **Date:** 25-December-2025
 * **Time:** To be decided based on majority of guest availability
-* **Location:** Ebbsfleet Valley, Kent, UK
+* **Location:** London Bridge, London, UK
 * **Expected Attendance:** At least 100 potential attendees
 
 ## Marketing Strategy
