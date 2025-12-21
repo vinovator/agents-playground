@@ -1,0 +1,16 @@
+# Notebooks & Utils
+jupyterlab
+notebook
+openai
+huggingface_hub
+python-dotenv
+
+# Agents
+crewai
+langgraph
+pydantic-ai
+nest_asyncio
+
+# API & Server
+fastapi
+uvicorn
