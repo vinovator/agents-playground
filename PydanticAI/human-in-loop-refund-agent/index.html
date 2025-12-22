@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Refund Portal</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Glassmorphism Card */
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2 .icon {
+            font-size: 1.25rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px -1px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .status-box {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .status-processing {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #c7d2fe;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+        }
+
+        /* Manager Section */
+        .manager-section {
+            opacity: 0.5;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .manager-section.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .ticket-info {
+            background: rgba(15, 23, 42, 0.4);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--warning);
+        }
+
+        .ticket-info p {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .ticket-info strong {
+            color: var(--text-main);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Customer Side -->
+        <div class="card">
+            <h2><span class="icon">👤</span> Customer Refund</h2>
+            <div class="form-group">
+                <label for="amount">Refund Amount ($)</label>
+                <input type="number" id="amount" placeholder="e.g. 50">
+            </div>
+            <div class="form-group">
+                <label for="reason">Reason for Refund</label>
+                <input type="text" id="reason" placeholder="e.g. Item arrived damaged">
+            </div>
+            <button class="btn-primary" onclick="requestRefund()" id="submitBtn">Submit Request</button>
+
+            <div id="customerStatus" class="status-box"></div>
+        </div>
+
+        <!-- Manager Side -->
+        <div class="card manager-section" id="managerSection">
+            <h2><span class="icon">🛡️</span> Manager Dashboard</h2>
+
+            <div id="noTasksMsg">
+                <p style="color: var(--text-muted); text-align: center; margin-top: 2rem;">No pending approvals.</p>
+            </div>
+
+            <div id="managerContent" style="display: none;">
+                <div class="ticket-info">
+                    <p><strong>Job ID:</strong> <span id="mgrJobId">---</span></p>
+                    <p><strong>Amount:</strong> $<span id="mgrAmount">---</span></p>
+                    <p><strong>Reason:</strong> <span id="mgrReason">---</span></p>
+                    <p><strong>Status:</strong> <span style="color: var(--warning)">WAITING FOR APPROVAL</span></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="mgrComment">Manager Comment</label>
+                    <textarea id="mgrComment" rows="2" placeholder="Internal notes..."></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-danger" onclick="submitDecision(false)">Reject</button>
+                    <button class="btn-success" onclick="submitDecision(true)">Approve</button>
+                </div>
+
+                <div id="managerStatus" class="status-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+        let currentJobId = null;
+
+        async function requestRefund() {
+            const amount = document.getElementById('amount').value;
+            const reason = document.getElementById('reason').value;
+            const statusBox = document.getElementById('customerStatus');
+            const btn = document.getElementById('submitBtn');
+
+            if (!amount || !reason) {
+                showStatus(statusBox, 'Please fill in all fields.', 'warning');
+                return;
+            }
+
+            // UI Reset
+            btn.disabled = true;
+            btn.innerText = 'Processing...';
+            showStatus(statusBox, 'Agent is analyzing request...', 'processing');
+            resetManagerUI();
+
+            try {
+                const response = await fetch(`${API_URL}/request-refund?user_reason=${encodeURIComponent(reason)}&amount=${amount}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.status === 'COMPLETED') {
+                    showStatus(statusBox, `✅ Refund of $${data.details.amount} approved automatically!`, 'success');
+                } else if (data.status === 'APPROVAL_REQUESTED') {
+                    showStatus(statusBox, `⏸️ Request paused. High value detected ($${data.details.amount}). Sent to manager.`, 'warning');
+                    activateManager(data);
+                } else {
+                    showStatus(statusBox, `Unknown status: ${JSON.stringify(data)}`, 'danger');
+                }
+
+            } catch (error) {
+                showStatus(statusBox, `Error: ${error.message}. Is the backend running?`, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Submit Request';
+            }
+        }
+
+        function activateManager(data) {
+            const section = document.getElementById('managerSection');
+            const content = document.getElementById('managerContent');
+            const noMsg = document.getElementById('noTasksMsg');
+
+            currentJobId = data.job_id;
+
+            // Populate Info
+            document.getElementById('mgrJobId').innerText = data.job_id.substring(0, 8) + '...';
+            document.getElementById('mgrAmount').innerText = data.details.amount;
+            document.getElementById('mgrReason').innerText = data.details.reason;
+
+            // Show UI
+            section.classList.add('active');
+            noMsg.style.display = 'none';
+            content.style.display = 'block';
+            content.classList.add('fade-in');
+        }
+
+        function resetManagerUI() {
+            const section = document.getElementById('managerSection');
+            const content = document.getElementById('managerContent');
+            const noMsg = document.getElementById('noTasksMsg');
+            const status = document.getElementById('managerStatus');
+
+            section.classList.remove('active');
+            content.style.display = 'none';
+            noMsg.style.display = 'block';
+            status.style.display = 'none';
+            document.getElementById('mgrComment').value = '';
+            currentJobId = null;
+        }
+
+        async function submitDecision(approved) {
+            const comment = document.getElementById('mgrComment').value || (approved ? "Approved" : "Rejected");
+            const statusBox = document.getElementById('managerStatus');
+            const custStatusBox = document.getElementById('customerStatus');
+
+            if (!currentJobId) return;
+
+            showStatus(statusBox, 'Processing decision...', 'processing');
+
+            try {
+                const response = await fetch(`${API_URL}/manager-review`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        job_id: currentJobId,
+                        approved: approved,
+                        manager_comment: comment
+                    })
+                });
+                const data = await response.json();
+
+                if (data.status === 'COMPLETED' || data.status === 'FINALIZED') {
+                    showStatus(statusBox, `Decision recorded. Agent resumed and completed task.`, 'success');
+                    showStatus(custStatusBox, `✅ Manager reviewed. Final Status: ${approved ? 'APPROVED' : 'REJECTED'}.`, approved ? 'success' : 'danger');
+
+                    // Cleanup UI after delay
+                    setTimeout(() => {
+                        resetManagerUI();
+                    }, 3000);
+                } else {
+                    showStatus(statusBox, `Agent returned status: ${data.status}`, 'warning');
+                }
+
+            } catch (error) {
+                showStatus(statusBox, `Error: ${error.message}`, 'danger');
+            }
+        }
+
+        function showStatus(element, msg, type) {
+            element.style.display = 'block';
+            element.className = `status-box status-${type} fade-in`;
+            element.innerText = msg;
+        }
+    </script>
+</body>
+
+</html>
