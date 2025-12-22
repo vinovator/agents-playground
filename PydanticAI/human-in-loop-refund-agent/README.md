@@ -24,6 +24,7 @@ human-in-loop-refund-agent/
 │   ├── main.py          # FastAPI application & endpoints
 │   ├── agent.py         # Agent definition & tools
 │   ├── models.py        # Pydantic models & mocked database
+├── index.html           # Premium Frontend UI
 ├── requirements.txt     # Python dependencies
 └── README.md            # Documentation
 ```
@@ -56,7 +57,17 @@ uvicorn app.main:app --reload
 
 The server will start at `http://127.0.0.1:8000`.
 
-### 1. Automatic Refund (< $50)
+### 🖥️ Using the Premium Frontend
+
+1.  Make sure the backend is running (`uvicorn app.main:app --reload`).
+2.  Open **`index.html`** in your browser.
+    ```bash
+    open index.html # Mac
+    # or just double-click the file
+    ```
+3.  Use the beautiful "Glassmorphism" UI to submit refunds and handle manager approvals continuously.
+
+### 💻 CLI / API Usage
 
 **Request:**
 ```bash
