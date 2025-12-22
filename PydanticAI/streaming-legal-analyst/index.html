@@ -1,118 +1,360 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Legal AI Stream</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Contract Risk Analyzer (Streaming)</title>
     <style>
         body {
-            font-family: sans-serif;
-            max-width: 800px;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            max-width: 900px;
             margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        h2 {
+            margin-bottom: 0.75rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            font-size: 14px;
+            padding: 0.75rem;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            resize: vertical;
+        }
+
+        .row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            border: 1px solid #111;
+            background: #111;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #333;
         }
 
         #output {
             white-space: pre-wrap;
             background: #f4f4f4;
             padding: 1rem;
-            border-radius: 8px;
-            min-height: 100px;
+            border-radius: 12px;
+            min-height: 140px;
+            border: 1px solid #e2e2e2;
+            margin-top: 0.75rem;
+            line-height: 1.5;
         }
 
         .metadata {
             margin-top: 1rem;
             padding: 1rem;
             border: 1px solid #ccc;
+            border-radius: 12px;
             display: none;
+            background: #fafafa;
         }
 
         .high-risk {
-            border-color: red;
-            background: #ffe6e6;
+            border-color: red !important;
+            background: #ffe6e6 !important;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            background: #eee;
+            font-size: 12px;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        ul {
+            margin: 0.5rem 0 0 1.2rem;
+        }
+
+        code {
+            background: #f0f0f0;
+            padding: 0.15rem 0.35rem;
+            border-radius: 6px;
         }
     </style>
 </head>
 
 <body>
-
     <h2>Contract Risk Analyzer</h2>
-    <textarea id="clauseInput" rows="4" style="width: 100%" placeholder="Paste contract clause here..."></textarea>
-    <br><br>
-    <button onclick="analyzeContract()">Analyze Live</button>
 
-    <h3>Live Analysis:</h3>
-    <div id="output">Waiting for input...</div>
+    <textarea id="clauseInput" placeholder="Paste contract clause here..."></textarea>
+
+    <div class="row">
+        <button id="analyzeBtn" onclick="analyzeContract()">Analyze Live</button>
+        <span class="status" id="statusText">Idle</span>
+        <span class="pill" id="connPill">disconnected</span>
+    </div>
+
+    <h3 style="margin-top: 1.25rem;">Live Analysis</h3>
+    <div id="output">Waiting for input…</div>
 
     <div id="metaBox" class="metadata">
-        <strong>Risk Score:</strong> <span id="score"></span>/10 <br>
-        <strong>Database Status:</strong> Saved ✅
+        <div><strong>Risk Score:</strong> <span id="score">—</span>/10</div>
+        <div><strong>Database Status:</strong> <span id="dbStatus">—</span></div>
+
+        <div id="flagsWrap" style="display:none; margin-top:0.75rem;">
+            <strong>Flagged Items:</strong>
+            <ul id="flags"></ul>
+        </div>
     </div>
 
     <script>
-        async function analyzeContract() {
-            const input = document.getElementById("clauseInput").value;
+        // === CONFIG ===
+        const API_URL = "http://localhost:8000/analyze-stream";
+
+        // === STATE ===
+        let currentAbortController = null;
+        let lastSummary = "";
+
+        function setStatus(text) {
+            document.getElementById("statusText").innerText = text;
+        }
+
+        function setConnected(isConnected) {
+            const pill = document.getElementById("connPill");
+            pill.innerText = isConnected ? "connected" : "disconnected";
+            pill.style.background = isConnected ? "#d7ffd7" : "#eee";
+        }
+
+        function resetUI() {
             const outputDiv = document.getElementById("output");
             const metaBox = document.getElementById("metaBox");
+            const flagsWrap = document.getElementById("flagsWrap");
+            const flagsUl = document.getElementById("flags");
 
-            outputDiv.innerText = ""; // Clear previous
+            outputDiv.innerText = "";
             metaBox.style.display = "none";
+            metaBox.classList.remove("high-risk");
 
-            // 1. Initiate the POST request
-            const response = await fetch("http://localhost:8000/analyze-stream", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contract_clause: input })
-            });
+            document.getElementById("score").innerText = "—";
+            document.getElementById("dbStatus").innerText = "—";
 
-            // 2. Setup the Reader
+            flagsUl.innerHTML = "";
+            flagsWrap.style.display = "none";
+
+            lastSummary = "";
+        }
+
+        function setLoading(isLoading) {
+            const btn = document.getElementById("analyzeBtn");
+            btn.disabled = isLoading;
+            btn.innerText = isLoading ? "Analyzing…" : "Analyze Live";
+        }
+
+        // Parse SSE events from a streaming fetch response.
+        // Supports blocks like:
+        //   event: partial
+        //   data: {...}
+        //
+        //   event: final_result
+        //   data: {...}
+        //
+        // Also supports blocks without event: (defaults to "message")
+        function parseSSEBlock(blockText) {
+            let eventName = "message";
+            const dataLines = [];
+
+            const lines = blockText.split("\n");
+            for (const line of lines) {
+                if (line.startsWith("event:")) eventName = line.slice(6).trim();
+                if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+            }
+
+            return { eventName, data: dataLines.join("\n") };
+        }
+
+        function applyTypingEffect(newText) {
+            const outputDiv = document.getElementById("output");
+
+            // If summary grows monotonically, append only the delta (typing illusion)
+            if (lastSummary && newText.startsWith(lastSummary)) {
+                outputDiv.innerText += newText.slice(lastSummary.length);
+            } else {
+                // fallback: replace whole text if provider sends non-monotonic partials
+                outputDiv.innerText = newText;
+            }
+            lastSummary = newText;
+        }
+
+        function handleFinalResult(obj) {
+            const metaBox = document.getElementById("metaBox");
+            const scoreSpan = document.getElementById("score");
+            const dbStatus = document.getElementById("dbStatus");
+
+            metaBox.style.display = "block";
+            dbStatus.innerText = "Saved ✅";
+
+            // Score
+            if (typeof obj.risk_score === "number") {
+                scoreSpan.innerText = obj.risk_score;
+                if (obj.risk_score > 7) metaBox.classList.add("high-risk");
+            }
+
+            // Ensure output shows final summary (if present)
+            if (obj.summary) {
+                applyTypingEffect(obj.summary);
+            }
+
+            // Flagged items list
+            const flagsWrap = document.getElementById("flagsWrap");
+            const flagsUl = document.getElementById("flags");
+            flagsUl.innerHTML = "";
+
+            if (Array.isArray(obj.flagged_items) && obj.flagged_items.length) {
+                for (const item of obj.flagged_items) {
+                    const li = document.createElement("li");
+                    li.innerText = item;
+                    flagsUl.appendChild(li);
+                }
+                flagsWrap.style.display = "block";
+            } else {
+                flagsWrap.style.display = "none";
+            }
+        }
+
+        async function analyzeContract() {
+            const input = document.getElementById("clauseInput").value.trim();
+            const outputDiv = document.getElementById("output");
+
+            // Abort any in-flight stream before starting a new one
+            if (currentAbortController) {
+                currentAbortController.abort();
+            }
+            currentAbortController = new AbortController();
+
+            resetUI();
+
+            if (!input) {
+                outputDiv.innerText = "Please paste a contract clause first.";
+                return;
+            }
+
+            setLoading(true);
+            setStatus("Connecting…");
+            setConnected(false);
+            outputDiv.innerText = "";
+
+            let response;
+            try {
+                response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contract_clause: input }),
+                    signal: currentAbortController.signal
+                });
+            } catch (err) {
+                setLoading(false);
+                setStatus("Request failed");
+                outputDiv.innerText = "Could not connect to the backend. Is FastAPI running on port 8000?";
+                return;
+            }
+
+            if (!response.ok || !response.body) {
+                setLoading(false);
+                setStatus(`Error (${response.status})`);
+                outputDiv.innerText = `Backend error: ${response.status} ${response.statusText}`;
+                return;
+            }
+
+            setStatus("Streaming…");
+            setConnected(true);
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = "";
 
-            // 3. Read the stream loop
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                // Decode the raw bytes into string
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
+                    buffer += decoder.decode(value, { stream: true });
 
-                // Process line by line (SSE format is line-based)
-                const lines = buffer.split("\n\n");
-                buffer = lines.pop(); // Keep incomplete lines in buffer
+                    // SSE events are separated by a blank line
+                    const blocks = buffer.split("\n\n");
+                    buffer = blocks.pop(); // keep any incomplete block
 
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        const data = line.replace("data: ", "");
+                    for (const block of blocks) {
+                        const { eventName, data } = parseSSEBlock(block);
+                        if (!data) continue;
 
-                        // CHECK: Is this the special "final_result" event?
-                        // Note: In robust production code, we parse "event: ..." lines specifically.
-                        // Here, we check if the data looks like our JSON object to keep it simple.
-                        if (data.trim().startsWith("{") && data.includes("risk_score")) {
-                            handleFinalResult(JSON.parse(data));
-                        } else {
-                            // Otherwise, it's just text token streaming
+                        // data should be JSON, based on your FastAPI streaming code
+                        let obj;
+                        try {
+                            obj = JSON.parse(data);
+                        } catch {
+                            // If backend ever sends plain text, we can display it
                             outputDiv.innerText += data;
+                            continue;
+                        }
+
+                        if (eventName === "final_result") {
+                            handleFinalResult(obj);
+                        } else {
+                            // partial: update typing effect from summary field
+                            if (obj.summary) {
+                                applyTypingEffect(obj.summary);
+                            }
+                            // Optional: if risk_score appears early, show it
+                            if (typeof obj.risk_score === "number") {
+                                document.getElementById("metaBox").style.display = "block";
+                                document.getElementById("score").innerText = obj.risk_score;
+                            }
                         }
                     }
                 }
-            }
-        }
 
-        function handleFinalResult(json) {
-            const metaBox = document.getElementById("metaBox");
-            const scoreSpan = document.getElementById("score");
-
-            // Display the structured data
-            metaBox.style.display = "block";
-            scoreSpan.innerText = json.risk_score;
-
-            if (json.risk_score > 7) {
-                metaBox.classList.add("high-risk");
+                setStatus("Done");
+            } catch (err) {
+                if (currentAbortController.signal.aborted) {
+                    setStatus("Cancelled");
+                } else {
+                    setStatus("Stream error");
+                    outputDiv.innerText += "\n\n[Stream interrupted]";
+                }
+            } finally {
+                setConnected(false);
+                setLoading(false);
             }
         }
     </script>
 
+    <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;" />
+    <div style="font-size: 13px; color: #555;">
+        <div><strong>Note:</strong> This page expects the backend to emit SSE blocks like:</div>
+        <div style="margin-top: 0.4rem;">
+            <code>event: partial</code> + <code>data: {"summary":"..."}</code> and a final block:
+            <code>event: final_result</code> + <code>data: {"summary":"...","risk_score":...}</code>
+        </div>
+    </div>
 </body>
 
 </html>
