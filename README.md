@@ -14,6 +14,7 @@ Experiments with **CrewAI** for orchestrating role-based autonomous agents.
 ### [PydanticAI](./PydanticAI/)
 Examples using **PydanticAI** for strictly typed, production-grade agents.
 - **FastAPI Server**: A REST API wrapping an agent with context injection and structured outputs.
+- **Streaming Legal Analyst**: A real-time contract analysis tool using Server-Sent Events (SSE) and structured output streams.
 
 ### [LangGraph](./LangGraph/)
 Workflows built with **LangGraph** for stateful, graph-based agent applications.
