@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Legal AI Stream</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+
+        #output {
+            white-space: pre-wrap;
+            background: #f4f4f4;
+            padding: 1rem;
+            border-radius: 8px;
+            min-height: 100px;
+        }
+
+        .metadata {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            display: none;
+        }
+
+        .high-risk {
+            border-color: red;
+            background: #ffe6e6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Contract Risk Analyzer</h2>
+    <textarea id="clauseInput" rows="4" style="width: 100%" placeholder="Paste contract clause here..."></textarea>
+    <br><br>
+    <button onclick="analyzeContract()">Analyze Live</button>
+
+    <h3>Live Analysis:</h3>
+    <div id="output">Waiting for input...</div>
+
+    <div id="metaBox" class="metadata">
+        <strong>Risk Score:</strong> <span id="score"></span>/10 <br>
+        <strong>Database Status:</strong> Saved ✅
+    </div>
+
+    <script>
+        async function analyzeContract() {
+            const input = document.getElementById("clauseInput").value;
+            const outputDiv = document.getElementById("output");
+            const metaBox = document.getElementById("metaBox");
+
+            outputDiv.innerText = ""; // Clear previous
+            metaBox.style.display = "none";
+
+            // 1. Initiate the POST request
+            const response = await fetch("http://localhost:8000/analyze-stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contract_clause: input })
+            });
+
+            // 2. Setup the Reader
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            // 3. Read the stream loop
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // Decode the raw bytes into string
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+
+                // Process line by line (SSE format is line-based)
+                const lines = buffer.split("\n\n");
+                buffer = lines.pop(); // Keep incomplete lines in buffer
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        const data = line.replace("data: ", "");
+
+                        // CHECK: Is this the special "final_result" event?
+                        // Note: In robust production code, we parse "event: ..." lines specifically.
+                        // Here, we check if the data looks like our JSON object to keep it simple.
+                        if (data.trim().startsWith("{") && data.includes("risk_score")) {
+                            handleFinalResult(JSON.parse(data));
+                        } else {
+                            // Otherwise, it's just text token streaming
+                            outputDiv.innerText += data;
+                        }
+                    }
+                }
+            }
+        }
+
+        function handleFinalResult(json) {
+            const metaBox = document.getElementById("metaBox");
+            const scoreSpan = document.getElementById("score");
+
+            // Display the structured data
+            metaBox.style.display = "block";
+            scoreSpan.innerText = json.risk_score;
+
+            if (json.risk_score > 7) {
+                metaBox.classList.add("high-risk");
+            }
+        }
+    </script>
+
+</body>
+
+</html>

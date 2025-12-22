@@ -1,10 +1,4 @@
 """
-*** Updated code with backend persistence ***
-- In enterprise context, we do not save every single partial token to database
-- instead, we stream the ephimeral text to the user immediatly, 
-- and wait for full validation
-- Persist only the final, clean, type-safe JSON object.
-
 Usecase to showcase "Streaming" capabilities of PydanticAI
 Pydantic AI provides a specialized method agent.run_stream() to stream the output of the agent.
 Usecase:
@@ -22,7 +16,6 @@ Usecase:
 
 import asyncio
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
@@ -52,25 +45,8 @@ legal_analyst_agent = Agent(
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-# --- 2. Mock Database NEW ---
-class Database:
-    async def save_analysis(self, clause: str, analysis: ContractAnalysis):
-        print(f"Saving to DB: Clause: '{clause[:20]}...' | Risk={analysis.risk_score}")
-        # In real code: await self.db.execute("INSERT INTO...", ...)
-        return True
-
-db = Database()
-
-
-# --- 2. The Streaming Logic UPDATED ---
+# --- 2. The Streaming Logic ---
 async def stream_contract_analysis(contract_clause: str):
     """
     This is an Async Generator.
@@ -82,9 +58,9 @@ async def stream_contract_analysis(contract_clause: str):
 
         # A. Stream the text (The Thinking Process)
         # Loop over stream. PydanticAI will yield chunks of the output as they are generated.
-        async for chunk in result_stream.stream():
-            # We format it as server side event (data:...)
-            yield f"data: {chunk}\n\n"
+        # async for chunk in result_stream.stream_text():
+        #     # We format it as server side event (data:...)
+        #     yield f"data: {chunk.text}\n\n"
 
         # B. Stream the final structured Data
         # Once the text stream finishes, PydanticAI validates the final output
