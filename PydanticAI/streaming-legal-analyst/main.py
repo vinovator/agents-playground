@@ -45,7 +45,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -67,7 +67,8 @@ async def stream_contract_analysis(contract_clause: str):
         final_result = None
 
         # A. Stream Partial Data (The "Thinking" Process)
-        async for partial_result in result_stream.stream_output():
+        # debounce_by=None will yield every partial result with increased frequency as it arrives
+        async for partial_result in result_stream.stream_output(debounce_by=None):
             final_result = partial_result
             # Dump the partial model to JSON so the frontend can read it live
             chunk_data = partial_result.model_dump(mode='json', exclude_unset=True)
