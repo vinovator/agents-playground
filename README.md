@@ -8,8 +8,10 @@ Welcome to the **Agents Playground**! This repository is a collection of experim
 Experiments with **CrewAI** for orchestrating role-based autonomous agents.
 - **Event Automation**: Agents coordinating to plan events.
 - **Startup Validator**: Hierarchical crews validating business ideas.
-- **Financial Analysis**: collaborative financial research.
-- **Notebooks**: Various tutorials and examples (`crewai_basics.ipynb`, `crewai_with_tools.ipynb`).
+- **Financial Analysis**: Collaborative financial research.
+- **Customer Outreach**: Automated campaign strategies.
+- **Six Thinking Hats**: Decision making framework using agents.
+- **Notebooks**: Comprehensive tutorials (`crewai_basics.ipynb`, `crewai_async_tasks.ipynb`, etc).
 
 ### [PydanticAI](./PydanticAI/)
 Examples using **PydanticAI** for strictly typed, production-grade agents.
@@ -20,6 +22,15 @@ Examples using **PydanticAI** for strictly typed, production-grade agents.
 ### [LangGraph](./LangGraph/)
 Workflows built with **LangGraph** for stateful, graph-based agent applications.
 - **Debate Dojo**: Two agents debating a topic.
+
+### [Semantic Kernel](./SemanticKernel/)
+Experiments using Microsoft's **Semantic Kernel**.
+- **Polygot Bot**: A multi-language interaction bot example.
+
+### Basic Examples
+Simple standalone notebooks for testing connectivity and basic models.
+- **Ollama Call**: `simple_ollama_call.ipynb`
+- **OpenAI Call**: `simple_openai_call.ipynb`
 
 ## 🚀 Getting Started
 
@@ -69,4 +80,5 @@ uvicorn main:app --reload
 - **[CrewAI](https://docs.crewai.com/)**: Orchestrating role-playing agents.
 - **[LangGraph](https://python.langchain.com/docs/langgraph)**: Building stateful, multi-actor applications with LLMs.
 - **[PydanticAI](https://ai.pydantic.dev/)**: Building production grade agents with Pydantic.
+- **[Semantic Kernel](https://github.com/microsoft/semantic-kernel)**: Integration of LLMs with existing code.
 - **[FastAPI](https://fastapi.tiangolo.com/)**: Modern web framework for building APIs.

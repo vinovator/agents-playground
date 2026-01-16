@@ -10,6 +10,8 @@ crewai
 langgraph
 pydantic-ai
 nest_asyncio
+semantic-kernel
+google-generativeai
 
 # API & Server
 fastapi

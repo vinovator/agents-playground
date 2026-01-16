@@ -193,8 +193,8 @@ $RECYCLE.BIN/
 # *.csv
 # *.tsv
 # *.dat
-# *.db
-# *.sqlite
+*.db
+*.sqlite
 # *.h5
 # *.hdf5
 # *.parquet
