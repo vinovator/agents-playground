@@ -26,6 +26,7 @@ Workflows built with **LangGraph** for stateful, graph-based agent applications.
 ### [Semantic Kernel](./SemanticKernel/)
 Experiments using Microsoft's **Semantic Kernel**.
 - **Polygot Bot**: A multi-language interaction bot example.
+- **Smart Home Bot**: An agent using plugins to control simulated smart devices.
 
 ### Basic Examples
 Simple standalone notebooks for testing connectivity and basic models.
