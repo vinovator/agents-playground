@@ -27,6 +27,7 @@ Workflows built with **LangGraph** for stateful, graph-based agent applications.
 Experiments using Microsoft's **Semantic Kernel**.
 - **Polygot Bot**: A multi-language interaction bot example.
 - **Smart Home Bot**: An agent using plugins to control simulated smart devices.
+- **Human-in-Loop Refund Agent**: An agent demonstrating state management and human intervention flows.
 
 ### Basic Examples
 Simple standalone notebooks for testing connectivity and basic models.
