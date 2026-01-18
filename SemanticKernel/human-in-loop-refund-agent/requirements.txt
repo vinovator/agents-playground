@@ -1,0 +1,5 @@
+semantic-kernel
+google-generativeai
+streamlit
+python-dotenv
+sqlalchemy
